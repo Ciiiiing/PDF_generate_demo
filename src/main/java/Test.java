@@ -1,4 +1,3 @@
-import cn.hutool.system.SystemUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,12 +7,15 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
+import org.apache.pdfbox.util.Matrix;
 import org.vandeseer.easytable.TableDrawer;
 import org.vandeseer.easytable.settings.HorizontalAlignment;
 import org.vandeseer.easytable.structure.Row;
 import org.vandeseer.easytable.structure.Table;
 import org.vandeseer.easytable.structure.cell.TextCell;
 
+import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -84,21 +86,66 @@ public class Test {
                 }
             }
 
+            // 增加水印
+            generateWaterMark(doc, font, "张三 Ka12032035923469");
+
             // 保存
-            doc.save(SystemUtil.get(SystemUtil.USER_DIR + "test.pdf"));
+            doc.save("");
         } catch (IOException ioException) {
             ioException.printStackTrace();
         }
     }
 
-    // 加入单列文本
+    /**
+     * 水印
+     */
+    public static void generateWaterMark(PDDocument doc, PDFont font, String text) throws IOException {
+        for (PDPage page : doc.getPages()) {
+            try (PDPageContentStream contentStream = new PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true)) {
+                PDExtendedGraphicsState r0 = new PDExtendedGraphicsState();
+                // 设置透明度
+                r0.setNonStrokingAlphaConstant(0.2f);
+                r0.setAlphaSourceFlag(true);
+                contentStream.setGraphicsStateParameters(r0);
+                // 设置颜色
+                contentStream.setNonStrokingColor(Color.GRAY);
+                // 绘制文本
+                float width = page.getMediaBox().getWidth(), height = page.getMediaBox().getHeight();
+                for (float x = 0.0f; x < width; x += width / 10) {
+                    for (float y = 0.0f; y < height; y += height / 10) {
+                        contentStream.beginText();
+                        contentStream.setFont(font, 14.0f);
+                        contentStream.setTextMatrix(Matrix.getRotateInstance(0.5236, x, y));
+                        contentStream.showText(text);
+                        contentStream.endText();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 加入单列文本
+     *
+     * @param font
+     * @param text
+     * @param border
+     * @return
+     */
     public static Row addRowText(PDFont font, String text, float border) {
         TextCell textCell = TextCell.builder().font(font).text(text).textColor(null).borderWidth(border).colSpan(2).horizontalAlignment(HorizontalAlignment.CENTER).build();
 
         return Row.builder().add(textCell).build();
     }
 
-    // 加入双列文本
+    /**
+     * 加入双列文本
+     *
+     * @param font
+     * @param text1
+     * @param text2
+     * @return
+     */
     public static Row addRowTwoText(PDFont font, String text1, String text2) {
         TextCell textCell1 = TextCell.builder().font(font).text(text1).borderWidth(1).horizontalAlignment(HorizontalAlignment.CENTER).build();
         TextCell textCell2 = TextCell.builder().font(font).text(text2).borderWidth(1).horizontalAlignment(HorizontalAlignment.CENTER).build();
